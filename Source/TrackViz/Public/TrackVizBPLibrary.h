@@ -7,12 +7,15 @@
 
 
 USTRUCT(BlueprintType)
-struct FTrackRecordEntry
+struct FTrackRecord
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TrackRecordEntry)
-	FVector Position;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TrackRecord)
+	TArray<FVector> Positions;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TrackRecord)
+	FString FileName;
 };
 
 
@@ -23,16 +26,20 @@ class UTrackVizBPLibrary : public UBlueprintFunctionLibrary
 
 public:
 	UFUNCTION(BlueprintCallable)
-	static TArray<FTrackRecordEntry> ReadTrackRecordsFromCSV(const FString& path);
+	static FTrackRecord ReadTrackRecordFromFile(const FString& path);
 
-	UFUNCTION(
-		BlueprintCallable,
-		meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject")
-	)
-	static void VisualizeTrackRecords(
+	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
+	static void DrawTrackRecord(
 		UObject* WorldContextObject,
-		const TArray<FTrackRecordEntry>& trackRecords,
-		const FVector& startPosition,
-		FColor color
+		const FTrackRecord& trackRecord,
+		FVector startPosition,
+		FColor color,
+		float thickness
 	);
+
+	UFUNCTION(BlueprintCallable)
+	static TArray<FTrackRecord> ReadTrackRecordsFromDir(const FString& path);
+
+	UFUNCTION(BlueprintCallable)
+	static TArray<FColor> GetColorsForTrackRecords(const TArray<FTrackRecord>& trackRecords);
 };
