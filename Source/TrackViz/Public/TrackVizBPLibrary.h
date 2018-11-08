@@ -15,6 +15,9 @@ struct FTrackRecord
 	TArray<FVector> Positions;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TrackRecord)
+	TArray<FVector> ImageCamPositions;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TrackRecord)
 	FString FileName;
 };
 
