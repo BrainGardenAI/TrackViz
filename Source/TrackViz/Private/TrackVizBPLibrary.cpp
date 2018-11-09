@@ -40,13 +40,13 @@ FTrackRecord UTrackVizBPLibrary::ReadTrackRecordFromFile(const FString& path)
 		if (header.Equals(TEXT("POS_Z"))) {
 			csvInfo.PosZIndex = i;
 		}
-		if (header.Equals(TEXT("ImageCamX"))) {
+		if (header.Equals(TEXT("CameraPosX"))) {
 			csvInfo.ImgCamPosXIndex = i;
 		}
-		if (header.Equals(TEXT("ImageCamY"))) {
+		if (header.Equals(TEXT("CameraPosY"))) {
 			csvInfo.ImgCamPosYIndex = i;
 		}
-		if (header.Equals(TEXT("ImageCamZ"))) {
+		if (header.Equals(TEXT("CameraPosZ"))) {
 			csvInfo.ImgCamPosZIndex = i;
 		}
 	}
