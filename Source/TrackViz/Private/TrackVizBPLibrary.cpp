@@ -68,7 +68,7 @@ void UTrackVizBPLibrary::DrawTrackRecord(
 	FColor color,
 	float thickness
 ) {
-	FVector currentPosition(trackRecord.Positions[0]);
+	FVector currentPosition(startPosition + trackRecord.Positions[0]);
 	const UWorld* world = GEngine->GetWorldFromContextObject(WorldContextObject);
 	for (int i = 1; i < trackRecord.Positions.Num(); ++i) {
 		auto position = trackRecord.Positions[i];
@@ -141,10 +141,10 @@ TArray<FColor> UTrackVizBPLibrary::GetColorsForTrackRecords(const TArray<FTrackR
 		for (TPair<FString, bool>& entry : colorUsed) {
 			const FString& colorStr = entry.Key;
 			const FString& fileName = trackRecord.FileName.ToLower();
-			if (fileName.StartsWith(colorStr + TEXT("_")) ||
-				fileName.StartsWith(colorStr + TEXT(" ")) ||
-				fileName.EndsWith(TEXT("_") + colorStr) ||
-				fileName.EndsWith(TEXT(" ") + colorStr))
+			if (fileName.StartsWith(colorStr) ||
+				fileName.StartsWith(colorStr) ||
+				fileName.EndsWith(colorStr) ||
+				fileName.EndsWith(colorStr))
 			{
 				entry.Value = true;
 				colors[i] = *colorMap.Find(colorStr);
