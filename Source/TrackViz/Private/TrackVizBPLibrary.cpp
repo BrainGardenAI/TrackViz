@@ -19,12 +19,9 @@ FTrackRecord UTrackVizBPLibrary::ReadTrackRecordFromFile(const FString& path)
 	lines.RemoveAt(0, 1, false);
 
 	struct {
-		uint16 PosXIndex = -1;
-		uint16 PosYIndex = -1;
-		uint16 PosZIndex = -1;
-		uint16 ImgCamPosXIndex = -1;
-		uint16 ImgCamPosYIndex = -1;
-		uint16 ImgCamPosZIndex = -1;
+		int PosXIndex = -1;
+		int PosYIndex = -1;
+		int PosZIndex = -1;
 	} csvInfo;
 	
 	TArray<FString> headers;
@@ -40,15 +37,6 @@ FTrackRecord UTrackVizBPLibrary::ReadTrackRecordFromFile(const FString& path)
 		if (header.Equals(TEXT("POS_Z"))) {
 			csvInfo.PosZIndex = i;
 		}
-		if (header.Equals(TEXT("CameraPosX"))) {
-			csvInfo.ImgCamPosXIndex = i;
-		}
-		if (header.Equals(TEXT("CameraPosY"))) {
-			csvInfo.ImgCamPosYIndex = i;
-		}
-		if (header.Equals(TEXT("CameraPosZ"))) {
-			csvInfo.ImgCamPosZIndex = i;
-		}
 	}
 
 	if (csvInfo.PosXIndex == -1 || csvInfo.PosYIndex == -1 || csvInfo.PosZIndex == -1) {
@@ -57,7 +45,6 @@ FTrackRecord UTrackVizBPLibrary::ReadTrackRecordFromFile(const FString& path)
 	}
 
 	TArray<FVector> positions;
-	TArray<FVector> imgCamPositions;
 	positions.Reserve(lines.Num());
 	for (FString line : lines) {
 		TArray<FString> fields;
@@ -68,15 +55,9 @@ FTrackRecord UTrackVizBPLibrary::ReadTrackRecordFromFile(const FString& path)
 			FCString::Atof(*fields[csvInfo.PosZIndex]) * 100
 		);
 		positions.Add(position);
-		FVector imgCamPosition(
-			FCString::Atof(*fields[csvInfo.ImgCamPosXIndex]) * 100,
-			FCString::Atof(*fields[csvInfo.ImgCamPosYIndex]) * 100,
-			FCString::Atof(*fields[csvInfo.ImgCamPosZIndex]) * 100
-		);
-		imgCamPositions.Add(imgCamPosition);
 	}
 
-	return {positions, imgCamPositions, FPaths::GetBaseFilename(path)};
+	return {positions, FPaths::GetBaseFilename(path)};
 }
 
 
