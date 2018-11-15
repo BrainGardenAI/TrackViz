@@ -11,7 +11,7 @@
 
 FTrackRecord UTrackVizBPLibrary::ReadTrackRecordFromFile(const FString& path)
 {
-	const TCHAR* delim = TEXT(",\t");
+	const TCHAR* delim = TEXT(",");
 
 	TArray<FString> lines;
 	FFileHelper::LoadFileToStringArray(lines, *path);
