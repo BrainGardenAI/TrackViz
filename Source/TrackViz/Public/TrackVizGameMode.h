@@ -13,7 +13,11 @@ UCLASS()
 class TRACKVIZ_API ATrackVizGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
-	
+
+private:
+	bool bRotationEnabled = false;
+	FIntPoint MouseCursorPosition;
+
 public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TrackVizProperties)
@@ -25,5 +29,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TrackVizProperties)
 	bool isRelativePath = true;
 
+	ATrackVizGameMode();
 	void BeginPlay() override;
+	void OnClick();
+	void OnRelease();
+	void Tick(float DeltaSeconds) override;
 };

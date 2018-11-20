@@ -4,6 +4,9 @@
 
 #include "Modules/ModuleManager.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(TrackVizLog, Log, All);
+DEFINE_LOG_CATEGORY(TrackVizLog);
+
 class FTrackVizModule : public IModuleInterface
 {
 public:

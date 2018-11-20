@@ -6,10 +6,30 @@
 #include "EngineUtils.h"
 #include "Engine.h"
 #include "Engine/GameEngine.h"
+#include "GameFramework/DefaultPawn.h"
+#include "GameFramework/PlayerInput.h"
+#include "Slate/SceneViewport.h"
+
+
+ATrackVizGameMode::ATrackVizGameMode()
+{
+	DefaultPawnClass = ADefaultPawn::StaticClass();
+	PrimaryActorTick.bStartWithTickEnabled = true;
+	PrimaryActorTick.bCanEverTick = true;
+	UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("TrackViz_LMB", EKeys::LeftMouseButton));
+}
 
 
 void ATrackVizGameMode::BeginPlay()
 {
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (PC)	{
+		PC->bShowMouseCursor = true;
+	}
+	PC->SetIgnoreLookInput(true);
+	PC->InputComponent->BindAction(FName("TrackViz_LMB"), IE_Pressed, this, &ATrackVizGameMode::OnClick);
+	PC->InputComponent->BindAction(FName("TrackViz_LMB"), IE_Released, this, &ATrackVizGameMode::OnRelease);
+
     TActorIterator<APlayerStart> itr(GetWorld());
     if (itr) {
         startPosition = itr->GetActorLocation();
@@ -31,4 +51,32 @@ void ATrackVizGameMode::BeginPlay()
         UTrackVizBPLibrary::DrawTrackRecord(this, record, startPosition, color, 1);
 		GEngine->AddOnScreenDebugMessage(i, 999999, color, record.FileName);
     }
+}
+
+void ATrackVizGameMode::OnClick()
+{
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	PC->bShowMouseCursor = false;
+	PC->SetIgnoreLookInput(false);
+	bRotationEnabled = true;
+	PC->GetLocalPlayer()->ViewportClient->Viewport->GetMousePos(MouseCursorPosition);
+}
+
+void ATrackVizGameMode::OnRelease()
+{
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	PC->bShowMouseCursor = true;
+	PC->SetIgnoreLookInput(true);
+	bRotationEnabled = false;
+}
+
+void ATrackVizGameMode::Tick(float DeltaSeconds)
+{
+	if (bRotationEnabled) {
+		APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+		FViewport* viewport = PC->GetLocalPlayer()->ViewportClient->Viewport;
+		FVector2D ViewportSize;
+		PC->GetLocalPlayer()->ViewportClient->GetViewportSize(ViewportSize);
+		viewport->SetMouse(MouseCursorPosition.X, MouseCursorPosition.Y);
+	}
 }
