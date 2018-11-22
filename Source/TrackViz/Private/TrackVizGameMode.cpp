@@ -6,29 +6,38 @@
 #include "EngineUtils.h"
 #include "Engine.h"
 #include "Engine/GameEngine.h"
-#include "GameFramework/DefaultPawn.h"
 #include "GameFramework/PlayerInput.h"
 #include "Slate/SceneViewport.h"
+#include "StaticCameraPawn.h"
+#include "TrackViz.h"
 
 
 ATrackVizGameMode::ATrackVizGameMode()
 {
-	DefaultPawnClass = ADefaultPawn::StaticClass();
 	PrimaryActorTick.bStartWithTickEnabled = true;
 	PrimaryActorTick.bCanEverTick = true;
 	UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("TrackViz_LMB", EKeys::LeftMouseButton));
+	UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("TrackViz_X", EKeys::X));
+	UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("TrackViz_Z", EKeys::Z));
 }
 
 
 void ATrackVizGameMode::BeginPlay()
 {
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	DefaultPawn = PC->GetPawn();
+	DefaultPawn->SetActorEnableCollision(false);
 	if (PC)	{
 		PC->bShowMouseCursor = true;
+		PC->bEnableClickEvents = true;
+		PC->bEnableMouseOverEvents = true;
+		PC->ClickEventKeys.Add(EKeys::RightMouseButton);
 	}
 	PC->SetIgnoreLookInput(true);
 	PC->InputComponent->BindAction(FName("TrackViz_LMB"), IE_Pressed, this, &ATrackVizGameMode::OnClick);
 	PC->InputComponent->BindAction(FName("TrackViz_LMB"), IE_Released, this, &ATrackVizGameMode::OnRelease);
+	PC->InputComponent->BindAction(FName("TrackViz_X"), IE_Pressed, this, &ATrackVizGameMode::OnPressedX);
+	PC->InputComponent->BindAction(FName("TrackViz_Z"), IE_Pressed, this, &ATrackVizGameMode::TogglePawnsVisibility);
 
     TActorIterator<APlayerStart> itr(GetWorld());
     if (itr) {
@@ -43,20 +52,45 @@ void ATrackVizGameMode::BeginPlay()
 		return;
 	}
 
-    TArray<FTrackRecord> records = UTrackVizBPLibrary::ReadTrackRecordsFromDir(absTracksDir);
-    TArray<FColor> colors = UTrackVizBPLibrary::GetColorsForTrackRecords(records);
-    for (int32 i = 0; i < records.Num(); ++i) {
-        const FTrackRecord& record = records[i];
-        const FColor& color = colors[i];
-        UTrackVizBPLibrary::DrawTrackRecord(this, record, startPosition, color, 1);
-		GEngine->AddOnScreenDebugMessage(i, 999999, color, record.FileName);
+    TrackRecords = UTrackVizBPLibrary::ReadTrackRecordsFromDir(absTracksDir);
+    TArray<FColor> colors = UTrackVizBPLibrary::GetColorsForTrackRecords(TrackRecords);
+	
+	for (int32 iTrack = 0; iTrack < TrackRecords.Num(); ++iTrack) {
+        const FTrackRecord& record = TrackRecords[iTrack];
+		const FColor& color = colors[iTrack];
+
+		for (int32 iPoint = 0; iPoint < record.Positions.Num(); ++iPoint) {
+			const FVector& position = record.Positions[iPoint];
+			auto p = GetWorld()->SpawnActor<AStaticCameraPawn>(startPosition + position, FRotator(0, 0, 0), FActorSpawnParameters());
+			p->TrackIndex = iTrack;
+			p->PointIndex = iPoint;
+			p->Color = color;
+			Pawns.Add(p);
+			p->OnClicked.AddDynamic(this, &ATrackVizGameMode::OnPressedStaticPawn);
+			UMaterialInterface * Material = p->Mesh->GetMaterial(0);
+			UMaterialInstanceDynamic* MatInstance = p->Mesh->CreateDynamicMaterialInstance(0, Material);
+			if (MatInstance) {
+				MatInstance->SetVectorParameterValue("Color", FLinearColor(color));
+			}
+		}
+
+        UTrackVizBPLibrary::DrawTrackRecord(this, record, startPosition, color, LineThickness);
+		GEngine->AddOnScreenDebugMessage(static_cast<uint64>(iTrack), 999999, color, record.FileName);
     }
+	bPawnsVisible = true;
+
+	TArray<UStaticMeshComponent*> Components;
+	DefaultPawn->GetComponents<UStaticMeshComponent>(Components);
+	Components[0]->ToggleVisibility();
+
+	ShowTooltip();
 }
 
 void ATrackVizGameMode::OnClick()
 {
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	PC->bShowMouseCursor = false;
+	PC->bEnableClickEvents = false;
+	PC->bEnableMouseOverEvents = false;
 	PC->SetIgnoreLookInput(false);
 	bRotationEnabled = true;
 	PC->GetLocalPlayer()->ViewportClient->Viewport->GetMousePos(MouseCursorPosition);
@@ -64,10 +98,23 @@ void ATrackVizGameMode::OnClick()
 
 void ATrackVizGameMode::OnRelease()
 {
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	PC->bShowMouseCursor = true;
+	PC->bEnableClickEvents = true;
+	PC->bEnableMouseOverEvents = true;
 	PC->SetIgnoreLookInput(true);
 	bRotationEnabled = false;
+}
+
+void ATrackVizGameMode::OnPressedX()
+{
+	if (PC->GetPawn() != DefaultPawn) {
+		PC->UnPossess();
+		PC->Possess(DefaultPawn);
+		SetPawnsVisibility(true);
+		PC->SetIgnoreMoveInput(false);
+		PC->SetIgnoreLookInput(true);
+		ShowTooltip();
+	}
 }
 
 void ATrackVizGameMode::Tick(float DeltaSeconds)
@@ -78,5 +125,62 @@ void ATrackVizGameMode::Tick(float DeltaSeconds)
 		FVector2D ViewportSize;
 		PC->GetLocalPlayer()->ViewportClient->GetViewportSize(ViewportSize);
 		viewport->SetMouse(MouseCursorPosition.X, MouseCursorPosition.Y);
+	}
+}
+
+void ATrackVizGameMode::OnPressedStaticPawn(AActor* actor, FKey key)
+{
+	if (!bPawnsVisible) {
+		return;
+	}
+	const auto pawn = dynamic_cast<AStaticCameraPawn*>(actor);
+	if (key == EKeys::LeftMouseButton) {
+		DefaultPawn->GetRootComponent()->ToggleVisibility();
+		PC->UnPossess();
+		PC->Possess(pawn);
+		SetPawnsVisibility(false);
+		PC->SetIgnoreMoveInput(true);
+		PC->SetIgnoreLookInput(true);
+		GEngine->AddOnScreenDebugMessage(TrackRecords.Num(), 999999, FColor::White, "Press X to go back");
+		return;
+	}
+	if (key == EKeys::RightMouseButton) {
+		if (pawn->TrackIndex != -1 && pawn->PointIndex != -1
+			&& TrackRecords.Num() == 2
+			&& TrackRecords[0].Positions.Num() == TrackRecords[1].Positions.Num())
+		{
+			int32 OtherTrackIndex = (pawn->TrackIndex + 1) % 2;
+			FVector from = TrackRecords[pawn->TrackIndex].Positions[pawn->PointIndex];
+			FVector to = TrackRecords[OtherTrackIndex].Positions[pawn->PointIndex];
+			UTrackVizBPLibrary::DrawLine(this, startPosition + from, startPosition + to, pawn->Color, LineThickness / 2);
+		}
+	}
+}
+
+void ATrackVizGameMode::SetPawnsVisibility(bool visibility)
+{
+	bPawnsVisible = visibility;
+	for (const AStaticCameraPawn* pawn : Pawns) {
+		TArray<UStaticMeshComponent*> Components;
+		pawn->GetComponents<UStaticMeshComponent>(Components);
+		for (auto c : Components) {
+			c->SetVisibility(bPawnsVisible);
+		}
+		Components[0]->SetVisibility(bPawnsVisible);
+	}
+}
+
+void ATrackVizGameMode::TogglePawnsVisibility()
+{
+	SetPawnsVisibility(!bPawnsVisible);
+}
+
+void ATrackVizGameMode::ShowTooltip()
+{
+	if (TrackRecords.Num() == 2 && TrackRecords[0].Positions.Num() == TrackRecords[1].Positions.Num()) {
+		GEngine->AddOnScreenDebugMessage(TrackRecords.Num(), 999999, FColor::White, "LMB to possess a point; RMB to match points between two tracks");
+	}
+	else {
+		GEngine->AddOnScreenDebugMessage(TrackRecords.Num(), 999999, FColor::White, "LMB to possess a point");
 	}
 }

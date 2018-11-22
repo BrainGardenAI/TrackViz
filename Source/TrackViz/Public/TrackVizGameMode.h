@@ -15,8 +15,17 @@ class TRACKVIZ_API ATrackVizGameMode : public AGameModeBase
 	GENERATED_BODY()
 
 private:
+
+	const float LineThickness = 1;
+
 	bool bRotationEnabled = false;
+	bool bPawnsVisible;
+	bool bIsComparison;
+	APlayerController* PC;
 	FIntPoint MouseCursorPosition;
+	APawn* DefaultPawn;
+	TArray<const class AStaticCameraPawn*> Pawns;
+	TArray<struct FTrackRecord> TrackRecords;
 
 public:
 
@@ -31,7 +40,15 @@ public:
 
 	ATrackVizGameMode();
 	void BeginPlay() override;
+	void Tick(float DeltaSeconds) override;
+
+private:
 	void OnClick();
 	void OnRelease();
-	void Tick(float DeltaSeconds) override;
+	void OnPressedX();
+	UFUNCTION()
+	void OnPressedStaticPawn(AActor* actor, FKey key);
+	void SetPawnsVisibility(bool visibility);
+	void TogglePawnsVisibility();
+	void ShowTooltip();
 };
