@@ -26,6 +26,7 @@ private:
 	APawn* DefaultPawn;
 	TArray<const class AStaticCameraPawn*> Pawns;
 	TArray<struct FTrackRecord> TrackRecords;
+	TArray<FColor> Colors;
 
 public:
 
@@ -43,6 +44,8 @@ public:
 	void Tick(float DeltaSeconds) override;
 
 private:
+	void DrawTracks();
+	void Reload();
 	void OnClick();
 	void OnRelease();
 	void OnPressedX();

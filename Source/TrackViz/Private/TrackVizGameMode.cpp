@@ -19,8 +19,25 @@ ATrackVizGameMode::ATrackVizGameMode()
 	UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("TrackViz_LMB", EKeys::LeftMouseButton));
 	UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("TrackViz_X", EKeys::X));
 	UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("TrackViz_Z", EKeys::Z));
+	UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("TrackViz_R", EKeys::R));
 }
 
+
+void ATrackVizGameMode::DrawTracks()
+{
+	for (int32 iTrack = 0; iTrack < TrackRecords.Num(); ++iTrack) {
+		const FTrackRecord& record = TrackRecords[iTrack];
+		const FColor& color = Colors[iTrack];
+		UTrackVizBPLibrary::DrawTrackRecord(this, record, startPosition, color, LineThickness);
+		GEngine->AddOnScreenDebugMessage(static_cast<uint64>(iTrack), 999999, color, record.FileName);
+	}
+}
+
+void ATrackVizGameMode::Reload()
+{
+	FlushPersistentDebugLines(GEngine->GetWorldFromContextObjectChecked(this));
+	DrawTracks();
+}
 
 void ATrackVizGameMode::BeginPlay()
 {
@@ -38,6 +55,7 @@ void ATrackVizGameMode::BeginPlay()
 	PC->InputComponent->BindAction(FName("TrackViz_LMB"), IE_Released, this, &ATrackVizGameMode::OnRelease);
 	PC->InputComponent->BindAction(FName("TrackViz_X"), IE_Pressed, this, &ATrackVizGameMode::OnPressedX);
 	PC->InputComponent->BindAction(FName("TrackViz_Z"), IE_Pressed, this, &ATrackVizGameMode::TogglePawnsVisibility);
+	PC->InputComponent->BindAction(FName("TrackViz_R"), IE_Pressed, this, &ATrackVizGameMode::Reload);
 
     TActorIterator<APlayerStart> itr(GetWorld());
     if (itr) {
@@ -53,12 +71,13 @@ void ATrackVizGameMode::BeginPlay()
 	}
 
     TrackRecords = UTrackVizBPLibrary::ReadTrackRecordsFromDir(absTracksDir);
-    TArray<FColor> colors = UTrackVizBPLibrary::GetColorsForTrackRecords(TrackRecords);
+    Colors = UTrackVizBPLibrary::GetColorsForTrackRecords(TrackRecords);
 	
-	for (int32 iTrack = 0; iTrack < TrackRecords.Num(); ++iTrack) {
-        const FTrackRecord& record = TrackRecords[iTrack];
-		const FColor& color = colors[iTrack];
+	DrawTracks();
 
+	for (int32 iTrack = 0; iTrack < TrackRecords.Num(); ++iTrack) {
+		const FTrackRecord& record = TrackRecords[iTrack];
+		const FColor& color = Colors[iTrack];
 		for (int32 iPoint = 0; iPoint < record.Positions.Num(); ++iPoint) {
 			const FVector& position = record.Positions[iPoint];
 			auto p = GetWorld()->SpawnActor<AStaticCameraPawn>(startPosition + position, FRotator(0, 0, 0), FActorSpawnParameters());
@@ -73,10 +92,7 @@ void ATrackVizGameMode::BeginPlay()
 				MatInstance->SetVectorParameterValue("Color", FLinearColor(color));
 			}
 		}
-
-        UTrackVizBPLibrary::DrawTrackRecord(this, record, startPosition, color, LineThickness);
-		GEngine->AddOnScreenDebugMessage(static_cast<uint64>(iTrack), 999999, color, record.FileName);
-    }
+	}
 	bPawnsVisible = true;
 
 	TArray<UStaticMeshComponent*> Components;
@@ -145,8 +161,7 @@ void ATrackVizGameMode::OnPressedStaticPawn(AActor* actor, FKey key)
 		return;
 	}
 	if (key == EKeys::RightMouseButton) {
-		if (pawn->TrackIndex != -1 && pawn->PointIndex != -1)
-		{
+		if (pawn->TrackIndex != -1 && pawn->PointIndex != -1) {
 			for (int OtherTrackIndex = 0; OtherTrackIndex < TrackRecords.Num(); ++OtherTrackIndex)
 			{
 				if (OtherTrackIndex == pawn->TrackIndex
@@ -156,7 +171,7 @@ void ATrackVizGameMode::OnPressedStaticPawn(AActor* actor, FKey key)
 				}
 				FVector from = TrackRecords[pawn->TrackIndex].Positions[pawn->PointIndex];
 				FVector to = TrackRecords[OtherTrackIndex].Positions[pawn->PointIndex];
-				UTrackVizBPLibrary::DrawLine(this, startPosition + from, startPosition + to, FColor(120, 120, 120), LineThickness / 2);
+				UTrackVizBPLibrary::DrawLine(this, startPosition + from, startPosition + to, FColor(120, 120, 120), true, LineThickness / 2);
 			}
 		}
 	}
@@ -182,5 +197,10 @@ void ATrackVizGameMode::TogglePawnsVisibility()
 
 void ATrackVizGameMode::ShowTooltip()
 {
-	GEngine->AddOnScreenDebugMessage(TrackRecords.Num(), 999999, FColor::White, "LMB to possess a point; RMB to match points between tracks with equal number of points");
+	GEngine->AddOnScreenDebugMessage(
+		TrackRecords.Num(),
+		999999,
+		FColor::White,
+		"LMB to possess a point; RMB to match points between tracks with equal number of points; R to hide matches; Z to hide point markers"
+	);
 }

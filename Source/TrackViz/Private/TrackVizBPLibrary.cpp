@@ -9,9 +9,9 @@
 #include "Core/Public/HAL/FileManagerGeneric.h"
 
 
-void UTrackVizBPLibrary::DrawLine(UObject* WorldContextObject, FVector from, FVector to, FColor color, float thickness)
+void UTrackVizBPLibrary::DrawLine(UObject* WorldContextObject, FVector from, FVector to, FColor color, bool removable, float thickness)
 {
-	DrawDebugLine(GEngine->GetWorldFromContextObjectChecked(WorldContextObject), from, to, color, false, 999999, 0, thickness);
+	DrawDebugLine(GEngine->GetWorldFromContextObjectChecked(WorldContextObject), from, to, color, removable, 999999, 0, thickness);
 }
 
 FTrackRecord UTrackVizBPLibrary::ReadTrackRecordFromFile(const FString& path)
@@ -77,7 +77,7 @@ void UTrackVizBPLibrary::DrawTrackRecord(
 	for (int i = 1; i < trackRecord.Positions.Num(); ++i) {
 		auto position = trackRecord.Positions[i];
 		FVector newPosition = startPosition + position;
-		DrawLine(WorldContextObject, currentPosition, newPosition, color, thickness);
+		DrawLine(WorldContextObject, currentPosition, newPosition, color, false, thickness);
 		currentPosition = newPosition;
 	}
 }

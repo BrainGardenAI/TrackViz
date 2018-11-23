@@ -26,7 +26,7 @@ class UTrackVizBPLibrary : public UBlueprintFunctionLibrary
 
 public:
 	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
-	static void DrawLine(UObject* WorldContextObject, FVector from, FVector to, FColor color, float thickness);
+	static void DrawLine(UObject* WorldContextObject, FVector from, FVector to, FColor color, bool removable, float thickness);
 
 	UFUNCTION(BlueprintCallable)
 	static FTrackRecord ReadTrackRecordFromFile(const FString& path);
