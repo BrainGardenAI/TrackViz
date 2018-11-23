@@ -145,10 +145,7 @@ TArray<FColor> UTrackVizBPLibrary::GetColorsForTrackRecords(const TArray<FTrackR
 		for (TPair<FString, bool>& entry : colorUsed) {
 			const FString& colorStr = entry.Key;
 			const FString& fileName = trackRecord.FileName.ToLower();
-			if (fileName.StartsWith(colorStr) ||
-				fileName.StartsWith(colorStr) ||
-				fileName.EndsWith(colorStr) ||
-				fileName.EndsWith(colorStr))
+			if (fileName.StartsWith(colorStr) || fileName.EndsWith(colorStr))
 			{
 				entry.Value = true;
 				colors[i] = *colorMap.Find(colorStr);

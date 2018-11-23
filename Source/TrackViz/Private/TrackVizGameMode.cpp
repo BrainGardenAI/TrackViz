@@ -145,14 +145,19 @@ void ATrackVizGameMode::OnPressedStaticPawn(AActor* actor, FKey key)
 		return;
 	}
 	if (key == EKeys::RightMouseButton) {
-		if (pawn->TrackIndex != -1 && pawn->PointIndex != -1
-			&& TrackRecords.Num() == 2
-			&& TrackRecords[0].Positions.Num() == TrackRecords[1].Positions.Num())
+		if (pawn->TrackIndex != -1 && pawn->PointIndex != -1)
 		{
-			int32 OtherTrackIndex = (pawn->TrackIndex + 1) % 2;
-			FVector from = TrackRecords[pawn->TrackIndex].Positions[pawn->PointIndex];
-			FVector to = TrackRecords[OtherTrackIndex].Positions[pawn->PointIndex];
-			UTrackVizBPLibrary::DrawLine(this, startPosition + from, startPosition + to, pawn->Color, LineThickness / 2);
+			for (int OtherTrackIndex = 0; OtherTrackIndex < TrackRecords.Num(); ++OtherTrackIndex)
+			{
+				if (OtherTrackIndex == pawn->TrackIndex
+					|| TrackRecords[OtherTrackIndex].Positions.Num() != TrackRecords[pawn->TrackIndex].Positions.Num())
+				{
+					continue;
+				}
+				FVector from = TrackRecords[pawn->TrackIndex].Positions[pawn->PointIndex];
+				FVector to = TrackRecords[OtherTrackIndex].Positions[pawn->PointIndex];
+				UTrackVizBPLibrary::DrawLine(this, startPosition + from, startPosition + to, FColor(120, 120, 120), LineThickness / 2);
+			}
 		}
 	}
 }
@@ -177,10 +182,5 @@ void ATrackVizGameMode::TogglePawnsVisibility()
 
 void ATrackVizGameMode::ShowTooltip()
 {
-	if (TrackRecords.Num() == 2 && TrackRecords[0].Positions.Num() == TrackRecords[1].Positions.Num()) {
-		GEngine->AddOnScreenDebugMessage(TrackRecords.Num(), 999999, FColor::White, "LMB to possess a point; RMB to match points between two tracks");
-	}
-	else {
-		GEngine->AddOnScreenDebugMessage(TrackRecords.Num(), 999999, FColor::White, "LMB to possess a point");
-	}
+	GEngine->AddOnScreenDebugMessage(TrackRecords.Num(), 999999, FColor::White, "LMB to possess a point; RMB to match points between tracks with equal number of points");
 }
