@@ -16,6 +16,9 @@ struct FTrackRecord
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TrackRecord)
 	FString FileName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TrackRecord)
+	FRotator Rotator = FRotator(0, 0, 0);
 };
 
 

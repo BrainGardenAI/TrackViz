@@ -78,6 +78,17 @@ void UTrackVizBPLibrary::DrawTrackRecord(
 		auto position = trackRecord.Positions[i];
 		FVector newPosition = startPosition + position;
 		DrawLine(WorldContextObject, currentPosition, newPosition, color, false, thickness);
+		DrawDebugDirectionalArrow(
+			GEngine->GetWorldFromContextObjectChecked(WorldContextObject),
+			currentPosition,
+			currentPosition + trackRecord.Rotator.Vector() * 10,
+			0,
+			color,
+			false,
+			999999,
+			0,
+			thickness / 4
+		);
 		currentPosition = newPosition;
 	}
 }
