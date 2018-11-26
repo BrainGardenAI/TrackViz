@@ -21,12 +21,15 @@ private:
 	bool bRotationEnabled = false;
 	bool bPawnsVisible;
 	bool bIsComparison;
+	bool bMarkerPossessed = false;
 	APlayerController* PC;
 	FIntPoint MouseCursorPosition;
 	APawn* DefaultPawn;
-	TArray<const class AStaticCameraPawn*> Pawns;
+	TArray<const class AMarkerMeshActor*> Markers;
 	TArray<struct FTrackRecord> TrackRecords;
 	TArray<FColor> Colors;
+	FVector SavedDefaultPawnLocation;
+	FRotator SavedControlRotation;
 
 public:
 
@@ -50,8 +53,8 @@ private:
 	void OnRelease();
 	void OnPressedX();
 	UFUNCTION()
-	void OnPressedStaticPawn(AActor* actor, FKey key);
-	void SetPawnsVisibility(bool visibility);
-	void TogglePawnsVisibility();
+	void OnPressedMarker(AActor* actor, FKey key);
+	void SetMarkersVisibility(bool visibility);
+	void ToggleMarkersVisibility();
 	void ShowTooltip();
 };

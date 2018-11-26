@@ -3,19 +3,19 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/DefaultPawn.h"
-#include "StaticCameraPawn.generated.h"
+#include "Engine/StaticMeshActor.h"
+#include "MarkerMeshActor.generated.h"
 
+/**
+ * 
+ */
 UCLASS()
-class TRACKVIZ_API AStaticCameraPawn : public ADefaultPawn
+class AMarkerMeshActor : public AStaticMeshActor
 {
 	GENERATED_BODY()
 
-private:
-	class AController* PossessedController;
-
 public:
-	UPROPERTY(Category = Mesh, EditAnywhere, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(Category = Mesh, EditAnywhere)
 	class UStaticMeshComponent* Mesh;
 
 	UPROPERTY(Category = PointData, EditAnywhere)
@@ -26,7 +26,6 @@ public:
 
 	UPROPERTY(Category = PointData, EditAnywhere)
 	FColor Color = FColor::Transparent;
-
-	// Sets default values for this pawn's properties
-	AStaticCameraPawn();
+	
+	AMarkerMeshActor();
 };

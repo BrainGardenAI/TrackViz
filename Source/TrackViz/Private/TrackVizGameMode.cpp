@@ -8,8 +8,7 @@
 #include "Engine/GameEngine.h"
 #include "GameFramework/PlayerInput.h"
 #include "Slate/SceneViewport.h"
-#include "StaticCameraPawn.h"
-#include "TrackViz.h"
+#include "MarkerMeshActor.h"
 
 
 ATrackVizGameMode::ATrackVizGameMode()
@@ -54,7 +53,7 @@ void ATrackVizGameMode::BeginPlay()
 	PC->InputComponent->BindAction(FName("TrackViz_LMB"), IE_Pressed, this, &ATrackVizGameMode::OnClick);
 	PC->InputComponent->BindAction(FName("TrackViz_LMB"), IE_Released, this, &ATrackVizGameMode::OnRelease);
 	PC->InputComponent->BindAction(FName("TrackViz_X"), IE_Pressed, this, &ATrackVizGameMode::OnPressedX);
-	PC->InputComponent->BindAction(FName("TrackViz_Z"), IE_Pressed, this, &ATrackVizGameMode::TogglePawnsVisibility);
+	PC->InputComponent->BindAction(FName("TrackViz_Z"), IE_Pressed, this, &ATrackVizGameMode::ToggleMarkersVisibility);
 	PC->InputComponent->BindAction(FName("TrackViz_R"), IE_Pressed, this, &ATrackVizGameMode::Reload);
 
     TActorIterator<APlayerStart> itr(GetWorld());
@@ -80,12 +79,13 @@ void ATrackVizGameMode::BeginPlay()
 		const FColor& color = Colors[iTrack];
 		for (int32 iPoint = 0; iPoint < record.Positions.Num(); ++iPoint) {
 			const FVector& position = record.Positions[iPoint];
-			auto p = GetWorld()->SpawnActor<AStaticCameraPawn>(startPosition + position, FRotator(0, 0, 0), FActorSpawnParameters());
+
+			auto p = GetWorld()->SpawnActor<AMarkerMeshActor>(startPosition + position, FRotator(0, 0, 0), FActorSpawnParameters());
 			p->TrackIndex = iTrack;
 			p->PointIndex = iPoint;
 			p->Color = color;
-			Pawns.Add(p);
-			p->OnClicked.AddDynamic(this, &ATrackVizGameMode::OnPressedStaticPawn);
+			Markers.Add(p);
+			p->OnClicked.AddDynamic(this, &ATrackVizGameMode::OnPressedMarker);
 			UMaterialInterface * Material = p->Mesh->GetMaterial(0);
 			UMaterialInstanceDynamic* MatInstance = p->Mesh->CreateDynamicMaterialInstance(0, Material);
 			if (MatInstance) {
@@ -104,6 +104,7 @@ void ATrackVizGameMode::BeginPlay()
 
 void ATrackVizGameMode::OnClick()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 999, FColor::White, "click!");
 	PC->bShowMouseCursor = false;
 	PC->bEnableClickEvents = false;
 	PC->bEnableMouseOverEvents = false;
@@ -123,12 +124,11 @@ void ATrackVizGameMode::OnRelease()
 
 void ATrackVizGameMode::OnPressedX()
 {
-	if (PC->GetPawn() != DefaultPawn) {
-		PC->UnPossess();
-		PC->Possess(DefaultPawn);
-		SetPawnsVisibility(true);
+	if (bMarkerPossessed) {
 		PC->SetIgnoreMoveInput(false);
-		PC->SetIgnoreLookInput(true);
+		DefaultPawn->SetActorLocation(SavedDefaultPawnLocation);
+		PC->SetControlRotation(SavedControlRotation);
+		SetMarkersVisibility(true);
 		ShowTooltip();
 	}
 }
@@ -144,45 +144,50 @@ void ATrackVizGameMode::Tick(float DeltaSeconds)
 	}
 }
 
-void ATrackVizGameMode::OnPressedStaticPawn(AActor* actor, FKey key)
+void ATrackVizGameMode::OnPressedMarker(AActor* actor, FKey key)
 {
 	if (!bPawnsVisible) {
 		return;
 	}
-	const auto pawn = dynamic_cast<AStaticCameraPawn*>(actor);
+	const auto MarkerActor = dynamic_cast<AMarkerMeshActor*>(actor);
+
 	if (key == EKeys::LeftMouseButton) {
-		DefaultPawn->GetRootComponent()->ToggleVisibility();
-		PC->UnPossess();
-		PC->Possess(pawn);
-		SetPawnsVisibility(false);
+
+		SavedDefaultPawnLocation = DefaultPawn->GetActorLocation();
+		SavedControlRotation = PC->GetControlRotation();
+		DefaultPawn->SetActorLocation(MarkerActor->GetActorLocation());
+		PC->SetControlRotation(MarkerActor->GetActorRotation());
+
 		PC->SetIgnoreMoveInput(true);
-		PC->SetIgnoreLookInput(true);
+		bMarkerPossessed = true;
+		SetMarkersVisibility(false);
 		GEngine->AddOnScreenDebugMessage(TrackRecords.Num(), 999999, FColor::White, "Press X to go back");
+		
 		return;
 	}
 	if (key == EKeys::RightMouseButton) {
-		if (pawn->TrackIndex != -1 && pawn->PointIndex != -1) {
+		if (MarkerActor->TrackIndex != -1 && MarkerActor->PointIndex != -1) {
 			for (int OtherTrackIndex = 0; OtherTrackIndex < TrackRecords.Num(); ++OtherTrackIndex)
 			{
-				if (OtherTrackIndex == pawn->TrackIndex
-					|| TrackRecords[OtherTrackIndex].Positions.Num() != TrackRecords[pawn->TrackIndex].Positions.Num())
+				if (OtherTrackIndex == MarkerActor->TrackIndex
+					|| TrackRecords[OtherTrackIndex].Positions.Num() != TrackRecords[MarkerActor->TrackIndex].Positions.Num())
 				{
 					continue;
 				}
-				FVector from = TrackRecords[pawn->TrackIndex].Positions[pawn->PointIndex];
-				FVector to = TrackRecords[OtherTrackIndex].Positions[pawn->PointIndex];
+				FVector from = TrackRecords[MarkerActor->TrackIndex].Positions[MarkerActor->PointIndex];
+				FVector to = TrackRecords[OtherTrackIndex].Positions[MarkerActor->PointIndex];
 				UTrackVizBPLibrary::DrawLine(this, startPosition + from, startPosition + to, FColor(120, 120, 120), true, LineThickness / 2);
 			}
 		}
 	}
 }
 
-void ATrackVizGameMode::SetPawnsVisibility(bool visibility)
+void ATrackVizGameMode::SetMarkersVisibility(bool visibility)
 {
 	bPawnsVisible = visibility;
-	for (const AStaticCameraPawn* pawn : Pawns) {
+	for (const AMarkerMeshActor* marker : Markers) {
 		TArray<UStaticMeshComponent*> Components;
-		pawn->GetComponents<UStaticMeshComponent>(Components);
+		marker->GetComponents<UStaticMeshComponent>(Components);
 		for (auto c : Components) {
 			c->SetVisibility(bPawnsVisible);
 		}
@@ -190,9 +195,9 @@ void ATrackVizGameMode::SetPawnsVisibility(bool visibility)
 	}
 }
 
-void ATrackVizGameMode::TogglePawnsVisibility()
+void ATrackVizGameMode::ToggleMarkersVisibility()
 {
-	SetPawnsVisibility(!bPawnsVisible);
+	SetMarkersVisibility(!bPawnsVisible);
 }
 
 void ATrackVizGameMode::ShowTooltip()
