@@ -18,7 +18,7 @@ struct FTrackRecord
 	FString FileName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TrackRecord)
-	FRotator Rotator = FRotator(0, 0, 0);
+	TArray<FRotator> Rotators;
 };
 
 
@@ -30,6 +30,9 @@ class UTrackVizBPLibrary : public UBlueprintFunctionLibrary
 public:
 	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
 	static void DrawLine(UObject* WorldContextObject, FVector from, FVector to, FColor color, bool removable, float thickness);
+
+	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
+	static void DrawArrow(UObject* WorldContextObject, FVector position, FRotator rotator, FColor color, bool removable, float thickness);
 
 	UFUNCTION(BlueprintCallable)
 	static FTrackRecord ReadTrackRecordFromFile(const FString& path);

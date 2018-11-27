@@ -14,6 +14,21 @@ void UTrackVizBPLibrary::DrawLine(UObject* WorldContextObject, FVector from, FVe
 	DrawDebugLine(GEngine->GetWorldFromContextObjectChecked(WorldContextObject), from, to, color, removable, 999999, 0, thickness);
 }
 
+void UTrackVizBPLibrary::DrawArrow(UObject* WorldContextObject, FVector position, FRotator rotator, FColor color, bool removable, float thickness)
+{
+	DrawDebugDirectionalArrow(
+		GEngine->GetWorldFromContextObjectChecked(WorldContextObject),
+		position,
+		position + rotator.Vector() * 10,
+		0,
+		color,
+		removable,
+		999999,
+		0,
+		thickness
+	);
+}
+
 FTrackRecord UTrackVizBPLibrary::ReadTrackRecordFromFile(const FString& path)
 {
 	const TCHAR* delim = TEXT(",");
@@ -50,7 +65,9 @@ FTrackRecord UTrackVizBPLibrary::ReadTrackRecordFromFile(const FString& path)
 	}
 
 	TArray<FVector> positions;
+	TArray<FRotator> rotators;
 	positions.Reserve(lines.Num());
+	rotators.Reserve(lines.Num());
 	for (FString line : lines) {
 		TArray<FString> fields;
 		line.ParseIntoArray(fields, delim);
@@ -60,9 +77,10 @@ FTrackRecord UTrackVizBPLibrary::ReadTrackRecordFromFile(const FString& path)
 			FCString::Atof(*fields[csvInfo.PosZIndex]) * 100
 		);
 		positions.Add(position);
+		rotators.Add(FRotator(0, 0, 0));
 	}
 
-	return {positions, FPaths::GetBaseFilename(path)};
+	return {positions, FPaths::GetBaseFilename(path), rotators};
 }
 
 
@@ -78,17 +96,6 @@ void UTrackVizBPLibrary::DrawTrackRecord(
 		auto position = trackRecord.Positions[i];
 		FVector newPosition = startPosition + position;
 		DrawLine(WorldContextObject, currentPosition, newPosition, color, false, thickness);
-		DrawDebugDirectionalArrow(
-			GEngine->GetWorldFromContextObjectChecked(WorldContextObject),
-			currentPosition,
-			currentPosition + trackRecord.Rotator.Vector() * 10,
-			0,
-			color,
-			false,
-			999999,
-			0,
-			thickness / 4
-		);
 		currentPosition = newPosition;
 	}
 }

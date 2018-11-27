@@ -17,6 +17,8 @@ class TRACKVIZ_API ATrackVizGameMode : public AGameModeBase
 private:
 
 	const float LineThickness = 1;
+	const float ConnectionThickness = 0.5;
+	const float ArrowThickness = 0.25;
 
 	bool bRotationEnabled = false;
 	bool bPawnsVisible;
