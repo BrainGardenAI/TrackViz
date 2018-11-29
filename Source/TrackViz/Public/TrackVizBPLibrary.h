@@ -13,12 +13,15 @@ struct FTrackRecord
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TrackRecord)
 	TArray<FVector> Positions;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TrackRecord)
+	TArray<FRotator> Rotators;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TrackRecord)
+	bool RotatorsKnown;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TrackRecord)
 	FString FileName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = TrackRecord)
-	TArray<FRotator> Rotators;
 };
 
 

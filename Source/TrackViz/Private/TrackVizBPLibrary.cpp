@@ -42,6 +42,10 @@ FTrackRecord UTrackVizBPLibrary::ReadTrackRecordFromFile(const FString& path)
 		int PosXIndex = -1;
 		int PosYIndex = -1;
 		int PosZIndex = -1;
+		int QuatXIndex = -1;
+		int QuatYIndex = -1;
+		int QuatZIndex = -1;
+		int QuatWIndex = -1;
 	} csvInfo;
 	
 	TArray<FString> headers;
@@ -57,17 +61,33 @@ FTrackRecord UTrackVizBPLibrary::ReadTrackRecordFromFile(const FString& path)
 		if (header.Equals(TEXT("POS_Z"))) {
 			csvInfo.PosZIndex = i;
 		}
+		if (header.Equals(TEXT("Q_X"))) {
+			csvInfo.QuatXIndex = i;
+		}
+		if (header.Equals(TEXT("Q_Y"))) {
+			csvInfo.QuatYIndex = i;
+		}
+		if (header.Equals(TEXT("Q_Z"))) {
+			csvInfo.QuatZIndex = i;
+		}
+		if (header.Equals(TEXT("Q_W"))) {
+			csvInfo.QuatWIndex = i;
+		}
 	}
 
 	if (csvInfo.PosXIndex == -1 || csvInfo.PosYIndex == -1 || csvInfo.PosZIndex == -1) {
 		GEngine->AddOnScreenDebugMessage(-1, 999999, FColor::Red, TEXT("Parsing CSV file failed -- headers not found"));
-		return {TArray<FVector>()};
+		return {TArray<FVector>(), TArray<FRotator>(), false, TEXT("")};
 	}
+
+	bool RotatorsKnown = csvInfo.QuatXIndex != -1 && csvInfo.QuatYIndex != -1 && csvInfo.QuatZIndex != -1 && csvInfo.QuatWIndex != -1;
 
 	TArray<FVector> positions;
 	TArray<FRotator> rotators;
 	positions.Reserve(lines.Num());
-	rotators.Reserve(lines.Num());
+	if (RotatorsKnown) {
+		rotators.Reserve(lines.Num());
+	}
 	for (FString line : lines) {
 		TArray<FString> fields;
 		line.ParseIntoArray(fields, delim);
@@ -77,10 +97,18 @@ FTrackRecord UTrackVizBPLibrary::ReadTrackRecordFromFile(const FString& path)
 			FCString::Atof(*fields[csvInfo.PosZIndex]) * 100
 		);
 		positions.Add(position);
-		rotators.Add(FRotator(0, 0, 0));
+		if (RotatorsKnown) {
+			FQuat Quat(
+				FCString::Atof(*fields[csvInfo.QuatXIndex]),
+				FCString::Atof(*fields[csvInfo.QuatYIndex]),
+				FCString::Atof(*fields[csvInfo.QuatZIndex]),
+				FCString::Atof(*fields[csvInfo.QuatWIndex])
+			);
+			rotators.Add(Quat.Rotator());
+		}
 	}
 
-	return {positions, FPaths::GetBaseFilename(path), rotators};
+	return {positions, rotators, RotatorsKnown, FPaths::GetBaseFilename(path)};
 }
 
 

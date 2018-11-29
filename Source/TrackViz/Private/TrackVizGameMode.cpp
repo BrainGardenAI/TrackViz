@@ -167,33 +167,40 @@ void ATrackVizGameMode::OnPressedMarker(AActor* actor, FKey key)
 	if (key == EKeys::RightMouseButton) {
 		const FTrackRecord& MarkerTrackRecord = TrackRecords[MarkerActor->TrackIndex];
 		const FVector& MarkerPosition = MarkerTrackRecord.Positions[MarkerActor->PointIndex];
-		UTrackVizBPLibrary::DrawArrow(
-			this,
-			startPosition + MarkerPosition,
-			MarkerTrackRecord.Rotators[MarkerActor->PointIndex],
-			MarkerActor->Color,
-			true,
-			ArrowThickness
-		);
+		if (MarkerTrackRecord.RotatorsKnown) {
+			UTrackVizBPLibrary::DrawArrow(
+				this,
+				startPosition + MarkerPosition,
+				MarkerTrackRecord.Rotators[MarkerActor->PointIndex],
+				MarkerActor->Color,
+				true,
+				ArrowThickness
+			);
+		}
+		
 		if (MarkerActor->TrackIndex != -1 && MarkerActor->PointIndex != -1) {
 			for (int OtherTrackIndex = 0; OtherTrackIndex < TrackRecords.Num(); ++OtherTrackIndex)
 			{
+				const FTrackRecord& OtherTrackRecord = TrackRecords[OtherTrackIndex];
 				if (OtherTrackIndex == MarkerActor->TrackIndex
-					|| TrackRecords[OtherTrackIndex].Positions.Num() != MarkerTrackRecord.Positions.Num())
+					|| OtherTrackRecord.Positions.Num() != MarkerTrackRecord.Positions.Num())
 				{
 					continue;
 				}
 				FVector from = MarkerPosition;
-				FVector to = TrackRecords[OtherTrackIndex].Positions[MarkerActor->PointIndex];
+				FVector to = OtherTrackRecord.Positions[MarkerActor->PointIndex];
 				UTrackVizBPLibrary::DrawLine(this, startPosition + from, startPosition + to, FColor(120, 120, 120), true, ConnectionThickness);
-				UTrackVizBPLibrary::DrawArrow(
-					this,
-					startPosition + to,
-					TrackRecords[OtherTrackIndex].Rotators[MarkerActor->PointIndex],
-					Colors[OtherTrackIndex],
-					true,
-					ArrowThickness
-				);
+				
+				if (OtherTrackRecord.RotatorsKnown) {
+					UTrackVizBPLibrary::DrawArrow(
+						this,
+						startPosition + to,
+						OtherTrackRecord.Rotators[MarkerActor->PointIndex],
+						Colors[OtherTrackIndex],
+						true,
+						ArrowThickness
+					);
+				}
 			}
 		}
 	}
