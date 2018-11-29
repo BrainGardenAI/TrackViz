@@ -79,8 +79,9 @@ void ATrackVizGameMode::BeginPlay()
 		const FColor& color = Colors[iTrack];
 		for (int32 iPoint = 0; iPoint < record.Positions.Num(); ++iPoint) {
 			const FVector& position = record.Positions[iPoint];
+			const FRotator& rotator = record.RotatorsKnown ? record.Rotators[iPoint] : FRotator(0, 0, 0);
 
-			auto p = GetWorld()->SpawnActor<AMarkerMeshActor>(startPosition + position, FRotator(0, 0, 0), FActorSpawnParameters());
+			auto p = GetWorld()->SpawnActor<AMarkerMeshActor>(startPosition + position, rotator, FActorSpawnParameters());
 			p->TrackIndex = iTrack;
 			p->PointIndex = iPoint;
 			p->Color = color;
