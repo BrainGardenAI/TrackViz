@@ -104,7 +104,6 @@ void ATrackVizGameMode::BeginPlay()
 
 void ATrackVizGameMode::OnClick()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 999, FColor::White, "click!");
 	PC->bShowMouseCursor = false;
 	PC->bEnableClickEvents = false;
 	PC->bEnableMouseOverEvents = false;
