@@ -48,8 +48,7 @@ FTrackRecord UTrackVizBPLibrary::ReadTrackRecordFromFile(const FString& path)
 		int QuatWIndex = -1;
 	} csvInfo;
 	
-	TArray<FString> headers;
-	headerLine.ParseIntoArray(headers, delim);
+	TArray<FString> headers = ParseLineIntoArray(headerLine);
 	for (uint16 i = 0; i < headers.Num(); ++i) {
 		FString header = headers[i];
 		if (header.Equals(TEXT("POS_X"))) {
@@ -89,8 +88,7 @@ FTrackRecord UTrackVizBPLibrary::ReadTrackRecordFromFile(const FString& path)
 		rotators.Reserve(lines.Num());
 	}
 	for (FString line : lines) {
-		TArray<FString> fields;
-		line.ParseIntoArray(fields, delim);
+		TArray<FString> fields = ParseLineIntoArray(line);
 		FVector position(
 			FCString::Atof(*fields[csvInfo.PosXIndex]) * 100,
 			FCString::Atof(*fields[csvInfo.PosYIndex]) * 100,
@@ -220,4 +218,24 @@ TArray<FColor> UTrackVizBPLibrary::GetColorsForTrackRecords(const TArray<FTrackR
 	}
 
 	return colors;
+}
+
+TArray<FString> UTrackVizBPLibrary::ParseLineIntoArray(const FString& Line)
+{
+	static const FRegexPattern DELIM_REGEX(TEXT("(,\t)|(,)|(\t)"));
+	FRegexMatcher Matcher(DELIM_REGEX, Line);
+	TArray<FString> result;
+
+	int32 prev = 0;
+	while (Matcher.FindNext()) {
+		result.Add(Line.Mid(prev, Matcher.GetMatchBeginning() - prev));
+		prev = Matcher.GetMatchEnding();
+	}
+	result.Add(Line.Mid(prev, Line.Len() - prev));
+
+	for (const auto& s : result) {
+		UE_LOG(LogTemp, Log, TEXT("%s"), *s);
+	}
+
+	return result;
 }

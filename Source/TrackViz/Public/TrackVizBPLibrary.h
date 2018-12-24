@@ -54,4 +54,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	static TArray<FColor> GetColorsForTrackRecords(const TArray<FTrackRecord>& trackRecords);
+
+private:
+	static TArray<FString> ParseLineIntoArray(const FString& Line);
 };
